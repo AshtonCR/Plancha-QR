@@ -1,7 +1,7 @@
 export const prerender = false;
 
 import type { APIRoute } from 'astro';
-import { deleteQr, setDestination, updateLabel } from '../../../lib/qrs';
+import { clearDestination, deleteQr, setDestination, updateLabel } from '../../../lib/qrs';
 
 function json(body: unknown, status: number): Response {
 	return new Response(JSON.stringify(body), {
@@ -40,6 +40,22 @@ export const PATCH: APIRoute = async ({ params, request, locals }) => {
 	// `destination_url` takes precedence if both keys somehow arrive together.
 	if ('destination_url' in fields) {
 		const destinationUrl = fields.destination_url;
+
+		// `null` frees the code: the sticker stays alive and goes back to unassigned.
+		// Panel-only — an anonymous visitor must never be able to wipe a live code.
+		if (destinationUrl === null) {
+			if (!locals.isAuthed) {
+				return json({ ok: false, error: 'unauthorized' }, 401);
+			}
+
+			const cleared = await clearDestination(code);
+			if (!cleared.ok) {
+				return json({ ok: false, error: cleared.error }, 404);
+			}
+
+			return json({ ok: true, code, destination_url: null }, 200);
+		}
+
 		if (typeof destinationUrl !== 'string') {
 			return json({ ok: false, error: 'invalid_url' }, 400);
 		}
