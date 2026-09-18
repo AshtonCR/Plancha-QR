@@ -22,6 +22,8 @@ export type UpdateLabelResult =
 	| { ok: true; label: string | null }
 	| { ok: false; error: 'not_found' };
 
+export type ClearDestinationResult = { ok: true } | { ok: false; error: 'not_found' };
+
 export type DeleteQrResult = { ok: true } | { ok: false; error: 'not_found' };
 
 /** Batch size limits for `createBatchCodes`. */
@@ -122,6 +124,27 @@ export async function setDestination(
 	}
 
 	return { ok: true, destination_url: (data as { destination_url: string }).destination_url };
+}
+
+/**
+ * Frees a code: the row and its printed sticker survive, only the destination is
+ * dropped. The code goes back to "unassigned", so scanning it shows the setup form
+ * again and it can be handed to another business.
+ */
+export async function clearDestination(code: string): Promise<ClearDestinationResult> {
+	if (typeof code !== 'string' || !code.trim()) return { ok: false, error: 'not_found' };
+
+	const { data, error } = await supabase
+		.from('qrs')
+		.update({ destination_url: null, updated_at: new Date().toISOString() })
+		.eq('code', code.trim())
+		.select('code')
+		.maybeSingle();
+
+	if (error) throw new Error(`clearDestination failed: ${error.message}`);
+	if (!data) return { ok: false, error: 'not_found' };
+
+	return { ok: true };
 }
 
 /**
