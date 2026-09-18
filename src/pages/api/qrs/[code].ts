@@ -15,7 +15,7 @@ function json(body: unknown, status: number): Response {
  * `{ destination_url }` assigns or re-assigns the destination;
  * `{ label }` sets or (with `null` / `""`) clears the business name.
  */
-export const PATCH: APIRoute = async ({ params, request }) => {
+export const PATCH: APIRoute = async ({ params, request, locals }) => {
 	const code = params.code;
 	if (!code) {
 		return json({ ok: false, error: 'not_found' }, 404);
@@ -44,16 +44,27 @@ export const PATCH: APIRoute = async ({ params, request }) => {
 			return json({ ok: false, error: 'invalid_url' }, 400);
 		}
 
-		const result = await setDestination(code, destinationUrl);
+		// Anonymous visitors may only claim a sticker that has no destination yet.
+		// Re-assigning an active code is an admin action.
+		const result = await setDestination(code, destinationUrl, {
+			onlyIfUnassigned: !locals.isAuthed,
+		});
 
 		if (!result.ok) {
-			return json({ ok: false, error: result.error }, result.error === 'not_found' ? 404 : 400);
+			if (result.error === 'not_found') return json({ ok: false, error: result.error }, 404);
+			if (result.error === 'already_assigned') return json({ ok: false, error: result.error }, 403);
+			return json({ ok: false, error: result.error }, 400);
 		}
 
 		return json({ ok: true, code, destination_url: result.destination_url }, 200);
 	}
 
 	if ('label' in fields) {
+		// Labels are panel-only metadata; the scan page never sets them.
+		if (!locals.isAuthed) {
+			return json({ ok: false, error: 'unauthorized' }, 401);
+		}
+
 		const label = fields.label;
 		if (typeof label !== 'string' && label !== null) {
 			return json({ ok: false, error: 'invalid_url' }, 400);

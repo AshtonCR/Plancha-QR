@@ -16,7 +16,7 @@ export type QrListItem = {
 
 export type SetDestinationResult =
 	| { ok: true; destination_url: string }
-	| { ok: false; error: 'not_found' | 'invalid_url' };
+	| { ok: false; error: 'not_found' | 'invalid_url' | 'already_assigned' };
 
 export type UpdateLabelResult =
 	| { ok: true; label: string | null }
@@ -87,25 +87,39 @@ export async function listQrs(): Promise<QrListItem[]> {
 /**
  * Assigns (or re-assigns) the destination of a code.
  * The URL is validated before the database is touched.
+ *
+ * With `onlyIfUnassigned`, the update is filtered on `destination_url IS NULL`,
+ * so an anonymous visitor can claim a blank sticker but cannot hijack a code
+ * that already points somewhere. The filter runs in the database, so two
+ * simultaneous claims cannot both win.
  */
 export async function setDestination(
 	code: string,
-	destinationUrl: string
+	destinationUrl: string,
+	{ onlyIfUnassigned = false }: { onlyIfUnassigned?: boolean } = {}
 ): Promise<SetDestinationResult> {
 	const normalized = normalizeDestinationUrl(destinationUrl);
 	if (!normalized) return { ok: false, error: 'invalid_url' };
 
 	if (typeof code !== 'string' || !code.trim()) return { ok: false, error: 'not_found' };
 
-	const { data, error } = await supabase
+	const query = supabase
 		.from('qrs')
 		.update({ destination_url: normalized, updated_at: new Date().toISOString() })
-		.eq('code', code.trim())
-		.select('destination_url')
-		.maybeSingle();
+		.eq('code', code.trim());
+
+	if (onlyIfUnassigned) query.is('destination_url', null);
+
+	const { data, error } = await query.select('destination_url').maybeSingle();
 
 	if (error) throw new Error(`setDestination failed: ${error.message}`);
-	if (!data) return { ok: false, error: 'not_found' };
+
+	if (!data) {
+		if (!onlyIfUnassigned) return { ok: false, error: 'not_found' };
+		// Nothing matched: either the code does not exist, or it was already claimed.
+		const existing = await getQrByCode(code);
+		return { ok: false, error: existing ? 'already_assigned' : 'not_found' };
+	}
 
 	return { ok: true, destination_url: (data as { destination_url: string }).destination_url };
 }

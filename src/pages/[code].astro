@@ -7,6 +7,9 @@ import { getQrByCode } from '../lib/qrs';
 const { code } = Astro.params;
 const qr = code ? await getQrByCode(code) : null;
 const isAssigned = !!qr?.destination_url;
+// Re-pointing a live code is admin-only, so the scan page only offers it to a
+// signed-in admin — an anonymous visitor would just get a 403 from the API.
+const canReassign = Astro.locals.isAuthed;
 ---
 
 <Layout title={qr ? `plancha.ar/${code}` : 'Código no encontrado'}>
@@ -31,13 +34,15 @@ const isAssigned = !!qr?.destination_url;
 						<div id="redirect-mark" class="h-14 w-14 rounded-2xl bg-lime-400"></div>
 						<p class="mt-6 text-sm text-neutral-400">Te llevamos a tu destino…</p>
 						<p class="mt-1 font-mono text-xs text-neutral-600">{code}</p>
-						<button
-							id="change-destination-btn"
-							type="button"
-							class="mt-8 text-xs font-medium text-neutral-500 underline underline-offset-4 hover:text-lime-400"
-						>
-							Cambiar destino
-						</button>
+						{canReassign && (
+							<button
+								id="change-destination-btn"
+								type="button"
+								class="mt-8 text-xs font-medium text-neutral-500 underline underline-offset-4 hover:text-lime-400"
+							>
+								Cambiar destino
+							</button>
+						)}
 					</div>
 				</div>
 
@@ -172,10 +177,15 @@ const isAssigned = !!qr?.destination_url;
 				const data = await res.json();
 
 				if (!res.ok || !data.ok) {
-					formError.textContent =
-						data.error === 'invalid_url'
-							? 'Ese link no parece válido. Tiene que empezar con http:// o https://'
-							: 'No se pudo guardar. Probá de nuevo.';
+					if (data.error === 'invalid_url') {
+						formError.textContent =
+							'Ese link no parece válido. Tiene que empezar con http:// o https://';
+					} else if (data.error === 'already_assigned' || data.error === 'unauthorized') {
+						formError.textContent =
+							'Este código ya tiene destino. Para cambiarlo, ingresá al panel.';
+					} else {
+						formError.textContent = 'No se pudo guardar. Probá de nuevo.';
+					}
 					formError.classList.remove('hidden');
 					submitBtn.disabled = false;
 					return;
