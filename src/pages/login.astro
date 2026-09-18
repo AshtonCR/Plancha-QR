@@ -5,11 +5,20 @@ import Layout from '../layouts/Layout.astro';
 import {
 	SESSION_COOKIE,
 	SESSION_MAX_AGE_SECONDS,
+	authConfigIssues,
 	createSessionToken,
 	isAuthConfigured,
 	safeNextPath,
 	verifyCredentials,
 } from '../lib/auth';
+
+const CONFIG_ISSUE_MESSAGES = {
+	missing_session_secret: 'Falta la variable SESSION_SECRET.',
+	missing_panel_users: 'Falta la variable PANEL_USERS.',
+	invalid_panel_users_json: 'PANEL_USERS está definida pero no es un JSON válido.',
+	empty_panel_users:
+		'PANEL_USERS es un JSON válido pero no tiene ninguna cuenta con "email" y "password".',
+} as const;
 
 const next = safeNextPath(Astro.url.searchParams.get('next'));
 
@@ -36,9 +45,7 @@ if (Astro.request.method === 'POST') {
 		return Astro.redirect(safeNextPath(String(form.get('next') ?? next)));
 	}
 
-	error = isAuthConfigured
-		? 'Correo o contraseña incorrectos.'
-		: 'El acceso no está configurado. Falta definir PANEL_USERS y SESSION_SECRET.';
+	error = isAuthConfigured ? 'Correo o contraseña incorrectos.' : '';
 }
 ---
 
@@ -47,6 +54,25 @@ if (Astro.request.method === 'POST') {
 		<div class="w-full max-w-sm">
 			<p class="text-xs font-medium tracking-wide text-lime-400">PLANCHA QR</p>
 			<h1 class="mt-2 text-2xl font-bold text-white">Ingresá al panel</h1>
+
+			{
+				!isAuthConfigured && (
+					<div class="mt-6 rounded-lg border border-red-900 bg-red-950/40 p-4">
+						<p class="text-xs font-medium tracking-wide text-red-400">
+							ACCESO NO CONFIGURADO
+						</p>
+						<ul class="mt-2 space-y-1 text-xs text-neutral-300">
+							{authConfigIssues.map((issue) => (
+								<li>· {CONFIG_ISSUE_MESSAGES[issue]}</li>
+							))}
+						</ul>
+						<p class="mt-2 text-xs text-neutral-500">
+							Definilas en Vercel y volvé a desplegar: cambiar una variable no afecta a un
+							deployment ya creado.
+						</p>
+					</div>
+				)
+			}
 
 			<form method="POST" class="mt-6 space-y-3">
 				<input type="hidden" name="next" value={next} />
