@@ -1,0 +1,200 @@
+---
+export const prerender = false;
+
+import Layout from '../layouts/Layout.astro';
+import { getQrByCode } from '../lib/qrs';
+
+const { code } = Astro.params;
+const qr = code ? await getQrByCode(code) : null;
+const isAssigned = !!qr?.destination_url;
+---
+
+<Layout title={qr ? `plancha.ar/${code}` : 'Código no encontrado'}>
+	{!qr && (
+		<main class="flex min-h-screen items-center justify-center px-6">
+			<div class="max-w-sm text-center">
+				<p class="text-sm font-medium tracking-wide text-lime-400">CÓDIGO INVÁLIDO</p>
+				<h1 class="mt-3 text-2xl font-bold text-white">Este código no existe</h1>
+				<p class="mt-2 text-sm text-neutral-400">
+					Revisá que la URL sea la que está impresa en el cartel.
+				</p>
+			</div>
+		</main>
+	)}
+
+	{qr && (
+		<main class="flex min-h-screen items-center justify-center px-6">
+			<div class="w-full max-w-sm">
+				<!-- Redirect / animation state -->
+				<div id="redirect-state" class={isAssigned ? '' : 'hidden'}>
+					<div class="flex flex-col items-center text-center">
+						<div id="redirect-mark" class="h-14 w-14 rounded-2xl bg-lime-400"></div>
+						<p class="mt-6 text-sm text-neutral-400">Te llevamos a tu destino…</p>
+						<p class="mt-1 font-mono text-xs text-neutral-600">{code}</p>
+						<button
+							id="change-destination-btn"
+							type="button"
+							class="mt-8 text-xs font-medium text-neutral-500 underline underline-offset-4 hover:text-lime-400"
+						>
+							Cambiar destino
+						</button>
+					</div>
+				</div>
+
+				<!-- Config / edit form state -->
+				<div id="config-state" class={isAssigned ? 'hidden' : ''}>
+					<p class="text-xs font-medium tracking-wide text-lime-400">
+						CÓDIGO {code} · {isAssigned ? 'ASIGNADO' : 'SIN ASIGNAR'}
+					</p>
+					<h1 class="mt-3 text-2xl font-bold text-white">
+						¿A dónde tiene que llevar este código?
+					</h1>
+
+					<form id="config-form" class="mt-6 space-y-3">
+						<div>
+							<label for="destination" class="mb-1 block text-xs font-medium text-neutral-400">
+								DESTINO
+							</label>
+							<input
+								id="destination"
+								name="destination"
+								type="text"
+								inputmode="url"
+								placeholder="https://instagram.com/tu.negocio"
+								value={qr.destination_url ?? ''}
+								required
+								class="w-full rounded-lg border border-neutral-800 bg-neutral-900 px-4 py-3 text-sm text-white outline-none placeholder:text-neutral-600 focus:border-lime-400"
+							/>
+						</div>
+						<p id="form-error" class="hidden text-xs text-red-400"></p>
+						<button
+							type="submit"
+							class="w-full rounded-lg bg-lime-400 px-4 py-3 text-sm font-semibold text-neutral-950 transition hover:bg-lime-300"
+						>
+							Guardar y activar
+						</button>
+						{isAssigned && (
+							<button
+								id="cancel-edit-btn"
+								type="button"
+								class="w-full rounded-lg border border-neutral-800 px-4 py-2.5 text-sm text-neutral-400 hover:text-white"
+							>
+								Cancelar
+							</button>
+						)}
+					</form>
+				</div>
+
+				<!-- Confirmation state -->
+				<div id="done-state" class="hidden text-center">
+					<div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-lime-400">
+						<svg viewBox="0 0 24 24" class="h-7 w-7 text-neutral-950" fill="none" stroke="currentColor" stroke-width="3">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+						</svg>
+					</div>
+					<p class="mt-4 text-xs font-medium tracking-wide text-lime-400">LISTO</p>
+					<p class="mt-1 text-sm text-neutral-300">
+						El código <span class="font-mono text-white">{code}</span> ya lleva a
+						<span id="done-destination" class="block truncate text-white"></span>
+					</p>
+					<a id="done-link" href="#" class="mt-6 inline-block text-xs font-medium text-lime-400 underline underline-offset-4">
+						Ir ahora
+					</a>
+				</div>
+			</div>
+		</main>
+	)}
+</Layout>
+
+{qr && (
+	<script define:vars={{ code, destinationUrl: qr.destination_url, isAssigned }}>
+		const redirectState = document.getElementById('redirect-state');
+		const configState = document.getElementById('config-state');
+		const doneState = document.getElementById('done-state');
+		const form = document.getElementById('config-form');
+		const destinationInput = document.getElementById('destination');
+		const formError = document.getElementById('form-error');
+		const changeBtn = document.getElementById('change-destination-btn');
+		const cancelBtn = document.getElementById('cancel-edit-btn');
+
+		let redirectTimer;
+
+		async function runRedirectAnimation() {
+			const { default: gsap } = await import('gsap');
+			const mark = document.getElementById('redirect-mark');
+			const tl = gsap.timeline();
+			tl.set(mark, { scale: 0.6, opacity: 0, rotate: -8 });
+			tl.to(mark, { scale: 1, opacity: 1, rotate: 0, duration: 0.5, ease: 'back.out(1.7)' });
+			tl.to(mark, { scale: 0.9, duration: 0.35, ease: 'power1.inOut' }, '+=0.2');
+
+			redirectTimer = window.setTimeout(() => {
+				window.location.replace(destinationUrl);
+			}, 900);
+		}
+
+		function showConfig() {
+			if (redirectTimer) window.clearTimeout(redirectTimer);
+			redirectState.classList.add('hidden');
+			doneState.classList.add('hidden');
+			configState.classList.remove('hidden');
+		}
+
+		function showRedirect() {
+			configState.classList.add('hidden');
+			doneState.classList.add('hidden');
+			redirectState.classList.remove('hidden');
+			runRedirectAnimation();
+		}
+
+		if (isAssigned) {
+			showRedirect();
+		}
+
+		changeBtn?.addEventListener('click', showConfig);
+		cancelBtn?.addEventListener('click', () => {
+			if (isAssigned) showRedirect();
+		});
+
+		form?.addEventListener('submit', async (e) => {
+			e.preventDefault();
+			formError.classList.add('hidden');
+			const destination = destinationInput.value.trim();
+
+			const submitBtn = form.querySelector('button[type="submit"]');
+			submitBtn.disabled = true;
+
+			try {
+				const res = await fetch(`/api/qrs/${encodeURIComponent(code)}`, {
+					method: 'PATCH',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ destination_url: destination }),
+				});
+				const data = await res.json();
+
+				if (!res.ok || !data.ok) {
+					formError.textContent =
+						data.error === 'invalid_url'
+							? 'Ese link no parece válido. Tiene que empezar con http:// o https://'
+							: 'No se pudo guardar. Probá de nuevo.';
+					formError.classList.remove('hidden');
+					submitBtn.disabled = false;
+					return;
+				}
+
+				configState.classList.add('hidden');
+				doneState.classList.remove('hidden');
+				document.getElementById('done-destination').textContent = data.destination_url;
+				const doneLink = document.getElementById('done-link');
+				doneLink.href = data.destination_url;
+
+				window.setTimeout(() => {
+					window.location.replace(data.destination_url);
+				}, 1500);
+			} catch {
+				formError.textContent = 'No se pudo guardar. Revisá tu conexión.';
+				formError.classList.remove('hidden');
+				submitBtn.disabled = false;
+			}
+		});
+	</script>
+)}
