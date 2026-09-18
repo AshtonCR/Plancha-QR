@@ -13,7 +13,8 @@ import {
 } from '../lib/auth';
 
 const CONFIG_ISSUE_MESSAGES = {
-	missing_session_secret: 'Falta la variable SESSION_SECRET.',
+	missing_session_secret:
+		'Falta SESSION_SECRET y también SUPABASE_SERVICE_ROLE_KEY, de la que se deriva cuando la primera no está.',
 	missing_panel_users: 'Falta la variable PANEL_USERS.',
 	invalid_panel_users_json: 'PANEL_USERS está definida pero no es un JSON válido.',
 	empty_panel_users:
