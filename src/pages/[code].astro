@@ -13,6 +13,10 @@ const canReassign = Astro.locals.isAuthed;
 ---
 
 <Layout title={qr ? `plancha.ar/${code}` : 'Código no encontrado'}>
+	{isAssigned && (
+		<meta slot="head" http-equiv="refresh" content={`3;url=${qr!.destination_url}`} />
+	)}
+
 	{!qr && (
 		<main class="flex min-h-screen items-center justify-center px-6">
 			<div class="max-w-sm text-center">
@@ -111,6 +115,34 @@ const canReassign = Astro.locals.isAuthed;
 	)}
 </Layout>
 
+<style>
+	/* Declarative on purpose: the redirect page must not depend on a JS animation
+	   library loading before it can forward the scan. */
+	@keyframes redirect-mark-in {
+		0% {
+			transform: scale(0.6) rotate(-8deg);
+			opacity: 0;
+		}
+		35% {
+			transform: scale(1.08) rotate(0deg);
+			opacity: 1;
+		}
+		48%,
+		67% {
+			transform: scale(1) rotate(0deg);
+			opacity: 1;
+		}
+		100% {
+			transform: scale(0.9) rotate(0deg);
+			opacity: 1;
+		}
+	}
+
+	#redirect-mark {
+		animation: redirect-mark-in 1.05s ease-in-out forwards;
+	}
+</style>
+
 {qr && (
 	<script define:vars={{ code, destinationUrl: qr.destination_url, isAssigned }}>
 		const redirectState = document.getElementById('redirect-state');
@@ -124,19 +156,6 @@ const canReassign = Astro.locals.isAuthed;
 
 		let redirectTimer;
 
-		async function runRedirectAnimation() {
-			const { default: gsap } = await import('gsap');
-			const mark = document.getElementById('redirect-mark');
-			const tl = gsap.timeline();
-			tl.set(mark, { scale: 0.6, opacity: 0, rotate: -8 });
-			tl.to(mark, { scale: 1, opacity: 1, rotate: 0, duration: 0.5, ease: 'back.out(1.7)' });
-			tl.to(mark, { scale: 0.9, duration: 0.35, ease: 'power1.inOut' }, '+=0.2');
-
-			redirectTimer = window.setTimeout(() => {
-				window.location.replace(destinationUrl);
-			}, 900);
-		}
-
 		function showConfig() {
 			if (redirectTimer) window.clearTimeout(redirectTimer);
 			redirectState.classList.add('hidden');
@@ -145,10 +164,15 @@ const canReassign = Astro.locals.isAuthed;
 		}
 
 		function showRedirect() {
+			// Scheduled first and with nothing that can throw before it: this page exists
+			// only to forward the scan, so the jump must not depend on anything else.
+			redirectTimer = window.setTimeout(() => {
+				window.location.replace(destinationUrl);
+			}, 900);
+
 			configState.classList.add('hidden');
 			doneState.classList.add('hidden');
 			redirectState.classList.remove('hidden');
-			runRedirectAnimation();
 		}
 
 		if (isAssigned) {
