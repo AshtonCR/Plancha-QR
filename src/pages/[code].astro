@@ -20,7 +20,7 @@ const canReassign = Astro.locals.isAuthed;
 	{!qr && (
 		<main class="flex min-h-screen items-center justify-center px-6">
 			<div class="max-w-sm text-center">
-				<p class="text-sm font-medium tracking-wide text-lime-400">CÓDIGO INVÁLIDO</p>
+				<p class="text-sm font-medium tracking-wide text-brand">CÓDIGO INVÁLIDO</p>
 				<h1 class="mt-3 text-2xl font-bold text-white">Este código no existe</h1>
 				<p class="mt-2 text-sm text-neutral-400">
 					Revisá que la URL sea la que está impresa en el cartel.
@@ -35,14 +35,43 @@ const canReassign = Astro.locals.isAuthed;
 				<!-- Redirect / animation state -->
 				<div id="redirect-state" class={isAssigned ? '' : 'hidden'}>
 					<div class="flex flex-col items-center text-center">
-						<div id="redirect-mark" class="h-14 w-14 rounded-2xl bg-lime-400"></div>
+						<div id="redirect-mark" class="relative flex h-14 w-14 items-center justify-center text-brand">
+							<span class="redirect-mark-ring" aria-hidden="true"></span>
+							<svg viewBox="0 0 44 44" fill="none" class="relative h-14 w-14" aria-hidden="true">
+								<path
+									class="mark-arc mark-arc-1"
+									pathLength="1"
+									stroke="currentColor"
+									stroke-width="3.2"
+									stroke-linecap="round"
+									d="M12 29C12 21.82 17.82 16 25 16"
+								/>
+								<path
+									class="mark-arc mark-arc-2"
+									pathLength="1"
+									stroke="currentColor"
+									stroke-width="3.2"
+									stroke-linecap="round"
+									d="M6 29C6 18.51 14.51 10 25 10"
+								/>
+								<path
+									class="mark-arc mark-arc-3"
+									pathLength="1"
+									stroke="currentColor"
+									stroke-width="3.2"
+									stroke-linecap="round"
+									d="M0 29C0 15.19 11.19 4 25 4"
+								/>
+								<circle class="mark-dot" cx="29" cy="29" r="4" fill="currentColor" />
+							</svg>
+						</div>
 						<p class="mt-6 text-sm text-neutral-400">Te llevamos a tu destino…</p>
 						<p class="mt-1 font-mono text-xs text-neutral-600">{code}</p>
 						{canReassign && (
 							<button
 								id="change-destination-btn"
 								type="button"
-								class="mt-8 text-xs font-medium text-neutral-500 underline underline-offset-4 hover:text-lime-400"
+								class="mt-8 text-xs font-medium text-neutral-500 underline underline-offset-4 hover:text-brand"
 							>
 								Cambiar destino
 							</button>
@@ -52,7 +81,7 @@ const canReassign = Astro.locals.isAuthed;
 
 				<!-- Config / edit form state -->
 				<div id="config-state" class={isAssigned ? 'hidden' : ''}>
-					<p class="text-xs font-medium tracking-wide text-lime-400">
+					<p class="text-xs font-medium tracking-wide text-brand">
 						CÓDIGO {code} · {isAssigned ? 'ASIGNADO' : 'SIN ASIGNAR'}
 					</p>
 					<h1 class="mt-3 text-2xl font-bold text-white">
@@ -72,13 +101,13 @@ const canReassign = Astro.locals.isAuthed;
 								placeholder="https://instagram.com/tu.negocio"
 								value={qr.destination_url ?? ''}
 								required
-								class="w-full rounded-lg border border-neutral-800 bg-neutral-900 px-4 py-3 text-sm text-white outline-none placeholder:text-neutral-600 focus:border-lime-400"
+								class="w-full rounded-lg border border-neutral-800 bg-neutral-900 px-4 py-3 text-sm text-white outline-none placeholder:text-neutral-600 focus:border-brand"
 							/>
 						</div>
 						<p id="form-error" class="hidden text-xs text-red-400"></p>
 						<button
 							type="submit"
-							class="w-full rounded-lg bg-lime-400 px-4 py-3 text-sm font-semibold text-neutral-950 transition hover:bg-lime-300"
+							class="w-full rounded-lg bg-brand px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-deep"
 						>
 							Guardar y activar
 						</button>
@@ -96,17 +125,17 @@ const canReassign = Astro.locals.isAuthed;
 
 				<!-- Confirmation state -->
 				<div id="done-state" class="hidden text-center">
-					<div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-lime-400">
-						<svg viewBox="0 0 24 24" class="h-7 w-7 text-neutral-950" fill="none" stroke="currentColor" stroke-width="3">
+					<div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-brand">
+						<svg viewBox="0 0 24 24" class="h-7 w-7 text-white" fill="none" stroke="currentColor" stroke-width="3">
 							<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
 						</svg>
 					</div>
-					<p class="mt-4 text-xs font-medium tracking-wide text-lime-400">LISTO</p>
+					<p class="mt-4 text-xs font-medium tracking-wide text-brand">LISTO</p>
 					<p class="mt-1 text-sm text-neutral-300">
 						El código <span class="font-mono text-white">{code}</span> ya lleva a
 						<span id="done-destination" class="block truncate text-white"></span>
 					</p>
-					<a id="done-link" href="#" class="mt-6 inline-block text-xs font-medium text-lime-400 underline underline-offset-4">
+					<a id="done-link" href="#" class="mt-6 inline-block text-xs font-medium text-brand underline underline-offset-4">
 						Ir ahora
 					</a>
 				</div>
@@ -117,29 +146,118 @@ const canReassign = Astro.locals.isAuthed;
 
 <style>
 	/* Declarative on purpose: the redirect page must not depend on a JS animation
-	   library loading before it can forward the scan. */
+	   library loading before it can forward the scan.
+
+	   The mark is Simpletouch's signal isotype (three concentric arcs + a dot),
+	   not a spin: the arcs trace themselves in like a signal locking on, the dot
+	   pops once they land, and a ring pulses outward right as the JS redirect
+	   fires at 900ms — "you're connected, on your way". */
 	@keyframes redirect-mark-in {
 		0% {
-			transform: scale(0.6) rotate(-8deg);
+			transform: scale(0.7);
 			opacity: 0;
 		}
-		35% {
-			transform: scale(1.08) rotate(0deg);
-			opacity: 1;
-		}
-		48%,
-		67% {
-			transform: scale(1) rotate(0deg);
-			opacity: 1;
-		}
 		100% {
-			transform: scale(0.9) rotate(0deg);
+			transform: scale(1);
 			opacity: 1;
 		}
 	}
 
+	@keyframes redirect-arc-trace {
+		0% {
+			stroke-dashoffset: 1;
+			opacity: 0;
+		}
+		15% {
+			opacity: 1;
+		}
+		100% {
+			stroke-dashoffset: 0;
+			opacity: 1;
+		}
+	}
+
+	@keyframes redirect-dot-pop {
+		0%,
+		55% {
+			transform: scale(0);
+			opacity: 0;
+		}
+		75% {
+			transform: scale(1.3);
+			opacity: 1;
+		}
+		100% {
+			transform: scale(1);
+			opacity: 1;
+		}
+	}
+
+	@keyframes redirect-ring-pulse {
+		0%,
+		45% {
+			transform: scale(0.8);
+			opacity: 0;
+		}
+		65% {
+			opacity: 0.45;
+		}
+		100% {
+			transform: scale(1.7);
+			opacity: 0;
+		}
+	}
+
 	#redirect-mark {
-		animation: redirect-mark-in 1.05s ease-in-out forwards;
+		animation: redirect-mark-in 0.35s ease-out forwards;
+	}
+
+	.mark-arc {
+		stroke-dasharray: 1;
+		stroke-dashoffset: 1;
+		opacity: 0;
+		animation: redirect-arc-trace 0.55s ease-out forwards;
+	}
+	.mark-arc-1 {
+		animation-delay: 0.1s;
+	}
+	.mark-arc-2 {
+		animation-delay: 0.22s;
+	}
+	.mark-arc-3 {
+		animation-delay: 0.34s;
+	}
+
+	.mark-dot {
+		transform-origin: 29px 29px;
+		transform-box: fill-box;
+		opacity: 0;
+		animation: redirect-dot-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+		animation-delay: 0.55s;
+	}
+
+	.redirect-mark-ring {
+		position: absolute;
+		inset: 0;
+		border-radius: 9999px;
+		border: 2px solid var(--color-brand);
+		opacity: 0;
+		animation: redirect-ring-pulse 0.5s ease-out forwards;
+		animation-delay: 0.55s;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		#redirect-mark,
+		.mark-arc,
+		.mark-dot,
+		.redirect-mark-ring {
+			animation: none;
+			opacity: 1;
+			transform: none;
+		}
+		.mark-arc {
+			stroke-dashoffset: 0;
+		}
 	}
 </style>
 
