@@ -53,7 +53,7 @@ if (Astro.request.method === 'POST') {
 <Layout title="Ingresar — Plancha QR">
 	<main class="flex min-h-screen items-center justify-center px-6">
 		<div class="w-full max-w-sm">
-			<p class="text-xs font-medium tracking-wide text-lime-400">PLANCHA QR</p>
+			<p class="text-xs font-medium tracking-wide text-brand">PLANCHA QR</p>
 			<h1 class="mt-2 text-2xl font-bold text-white">Ingresá al panel</h1>
 
 			{
@@ -86,7 +86,7 @@ if (Astro.request.method === 'POST') {
 						autocomplete="username"
 						value={email}
 						required
-						class="w-full rounded-lg border border-neutral-800 bg-neutral-900 px-4 py-3 text-sm text-white outline-none placeholder:text-neutral-600 focus:border-lime-400"
+						class="w-full rounded-lg border border-neutral-800 bg-neutral-900 px-4 py-3 text-sm text-white outline-none placeholder:text-neutral-600 focus:border-brand"
 					/>
 				</div>
 				<div>
@@ -99,7 +99,7 @@ if (Astro.request.method === 'POST') {
 						type="password"
 						autocomplete="current-password"
 						required
-						class="w-full rounded-lg border border-neutral-800 bg-neutral-900 px-4 py-3 text-sm text-white outline-none focus:border-lime-400"
+						class="w-full rounded-lg border border-neutral-800 bg-neutral-900 px-4 py-3 text-sm text-white outline-none focus:border-brand"
 					/>
 				</div>
 
@@ -107,7 +107,7 @@ if (Astro.request.method === 'POST') {
 
 				<button
 					type="submit"
-					class="w-full rounded-lg bg-lime-400 px-4 py-3 text-sm font-semibold text-neutral-950 transition hover:bg-lime-300"
+					class="w-full rounded-lg bg-brand px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-deep"
 				>
 					Entrar
 				</button>

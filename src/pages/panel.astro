@@ -26,7 +26,7 @@ function formatDateTime(iso: string) {
     <div class="mx-auto max-w-4xl">
       <div class="flex items-center justify-between gap-4">
         <div>
-          <p class="text-xs font-medium tracking-wide text-lime-400">PANEL</p>
+          <p class="text-xs font-medium tracking-wide text-brand">PANEL</p>
           <h1 class="mt-1 text-2xl font-bold text-white">Tus códigos</h1>
           {userEmail && <p class="mt-1 text-xs text-neutral-500">{userEmail}</p>}
         </div>
@@ -41,7 +41,7 @@ function formatDateTime(iso: string) {
           </form>
           <a
             href="/panel/nueva"
-            class="rounded-lg bg-lime-400 px-4 py-2.5 text-sm font-semibold text-neutral-950 hover:bg-lime-300"
+            class="rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-deep"
           >
             Generar plancha nueva
           </a>
@@ -56,7 +56,7 @@ function formatDateTime(iso: string) {
             </p>
             <a
               href="/panel/nueva"
-              class="mt-3 inline-block text-sm font-medium text-lime-400 underline underline-offset-4"
+              class="mt-3 inline-block text-sm font-medium text-brand underline underline-offset-4"
             >
               Generar la primera plancha
             </a>
@@ -65,9 +65,9 @@ function formatDateTime(iso: string) {
           <>
             <div
               id="bulk-bar"
-              class="mt-6 hidden items-center justify-between rounded-lg border border-lime-400/30 bg-lime-400/10 px-4 py-2.5"
+              class="mt-6 hidden items-center justify-between rounded-lg border border-brand/30 bg-brand/10 px-4 py-2.5"
             >
-              <p class="text-sm text-lime-300">
+              <p class="text-sm text-brand">
                 <span id="selected-count">0</span> seleccionados
               </p>
               <div class="flex items-center gap-2">
@@ -96,7 +96,7 @@ function formatDateTime(iso: string) {
                       <input
                         id="select-all"
                         type="checkbox"
-                        class="h-4 w-4 rounded border-neutral-700 bg-neutral-900 accent-lime-400"
+                        class="h-4 w-4 rounded border-neutral-700 bg-neutral-900 accent-brand"
                       />
                     </th>
                     <th class="px-4 py-3 font-medium">Código</th>
@@ -114,14 +114,14 @@ function formatDateTime(iso: string) {
                       <td class="px-4 py-3">
                         <input
                           type="checkbox"
-                          class="row-checkbox h-4 w-4 rounded border-neutral-700 bg-neutral-900 accent-lime-400"
+                          class="row-checkbox h-4 w-4 rounded border-neutral-700 bg-neutral-900 accent-brand"
                           data-code={qr.code}
                         />
                       </td>
                       <td class="px-4 py-3">
                         <a
                           href={`/${qr.code}`}
-                          class="font-mono text-lime-400 hover:underline"
+                          class="font-mono text-brand hover:underline"
                         >
                           {qr.code}
                         </a>
@@ -129,7 +129,7 @@ function formatDateTime(iso: string) {
                       <td class="px-4 py-3">
                         <input
                           type="text"
-                          class="label-input w-40 rounded-md border border-transparent bg-transparent px-2 py-1 text-neutral-300 outline-none hover:border-neutral-800 focus:border-lime-400 focus:bg-neutral-900"
+                          class="label-input w-40 rounded-md border border-transparent bg-transparent px-2 py-1 text-neutral-300 outline-none hover:border-neutral-800 focus:border-brand focus:bg-neutral-900"
                           placeholder="Sin nombre"
                           value={qr.label ?? ""}
                           data-code={qr.code}
