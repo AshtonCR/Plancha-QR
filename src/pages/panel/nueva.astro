@@ -52,11 +52,82 @@ import Layout from '../../layouts/Layout.astro';
 					</button>
 				</div>
 
+				<div class="mt-4 flex flex-wrap items-start gap-6 rounded-lg border border-neutral-800 bg-neutral-900/50 p-3 print:hidden">
+					<div>
+						<label class="mb-1 block text-xs font-medium text-neutral-400">COLOR DEL QR</label>
+						<div class="flex items-center gap-2">
+							<input
+								id="qr-color"
+								type="color"
+								value="#000000"
+								class="h-9 w-9 cursor-pointer rounded border border-neutral-700 bg-neutral-900 p-0.5"
+							/>
+							<div id="qr-color-presets" class="flex gap-1.5">
+								<button
+									type="button"
+									class="preset-color h-6 w-6 rounded-full border border-neutral-700"
+									data-color="#000000"
+									style="background:#000000"
+									aria-label="Negro"
+								></button>
+								<button
+									type="button"
+									class="preset-color h-6 w-6 rounded-full border border-neutral-700"
+									data-color="#202124"
+									style="background:#202124"
+									aria-label="Gris oscuro"
+								></button>
+								<button
+									type="button"
+									class="preset-color h-6 w-6 rounded-full border border-neutral-700"
+									data-color="#174EA6"
+									style="background:#174EA6"
+									aria-label="Azul"
+								></button>
+								<button
+									type="button"
+									class="preset-color h-6 w-6 rounded-full border border-neutral-700"
+									data-color="#0D652D"
+									style="background:#0D652D"
+									aria-label="Verde"
+								></button>
+							</div>
+						</div>
+						<p id="contrast-warning" class="mt-1.5 hidden max-w-[220px] text-xs text-amber-400">
+							Este color tiene poco contraste sobre blanco y puede no escanear bien.
+						</p>
+					</div>
+
+					<div>
+						<label for="qr-size" class="mb-1 block text-xs font-medium text-neutral-400">
+							TAMAÑO (CM)
+						</label>
+						<input
+							id="qr-size"
+							type="number"
+							min="2"
+							max="15"
+							step="0.1"
+							value="3"
+							class="w-24 rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+						/>
+						<p class="mt-1.5 max-w-[220px] text-xs text-neutral-500">
+							Incluye el margen blanco alrededor del código (zona de silencio), necesario para
+							que escanee bien.
+						</p>
+					</div>
+				</div>
+
 				<div
 					id="sheet-grid"
-					class="mt-6 grid grid-cols-3 gap-6 rounded-xl border border-neutral-800 bg-white p-8 print:mt-0 print:grid-cols-4 print:gap-4 print:rounded-none print:border-0 print:p-4"
+					class="mt-4 grid gap-6 rounded-xl border border-neutral-800 bg-white p-8 print:mt-0 print:gap-4 print:rounded-none print:border-0 print:p-4"
 				>
 				</div>
+
+				<p class="mt-3 text-xs text-neutral-500 print:hidden">
+					Al imprimir, usá escala 100% (no "Ajustar a página") para que el tamaño en cm salga
+					exacto.
+				</p>
 
 				<a href="/panel" class="mt-6 inline-block text-xs text-neutral-500 hover:text-neutral-300 print:hidden">
 					&larr; Volver al panel
@@ -82,9 +153,77 @@ import Layout from '../../layouts/Layout.astro';
 	const batchForm = document.getElementById('batch-form') as HTMLFormElement;
 	const countInput = document.getElementById('count') as HTMLInputElement;
 	const batchError = document.getElementById('batch-error');
-	const sheetGrid = document.getElementById('sheet-grid');
+	const sheetGrid = document.getElementById('sheet-grid') as HTMLDivElement;
 	const sheetCount = document.getElementById('sheet-count');
 	const printBtn = document.getElementById('print-btn');
+	const colorInput = document.getElementById('qr-color') as HTMLInputElement;
+	const colorPresets = document.querySelectorAll<HTMLButtonElement>('.preset-color');
+	const contrastWarning = document.getElementById('contrast-warning');
+	const sizeInput = document.getElementById('qr-size') as HTMLInputElement;
+
+	// Codes already exist in the database once the batch is created; color and
+	// size are purely rendering choices, so changing them just repaints the same
+	// codes instead of hitting the API again (which would burn a new batch).
+	let currentCodes: { code: string }[] = [];
+
+	function parseSizeCm(): number {
+		const value = Number(sizeInput.value);
+		if (!Number.isFinite(value)) return 3;
+		return Math.min(15, Math.max(2, value));
+	}
+
+	/** WCAG relative luminance of a `#rrggbb` color, 0 (black) to 1 (white). */
+	function relativeLuminance(hex: string): number {
+		const n = parseInt(hex.slice(1), 16);
+		const channels = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((c) => {
+			const s = c / 255;
+			return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+		});
+		return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+	}
+
+	/** Contrast ratio of a color against a white background (1 to 21). */
+	function contrastAgainstWhite(hex: string): number {
+		return 1.05 / (relativeLuminance(hex) + 0.05);
+	}
+
+	function updateColorUi() {
+		const color = colorInput.value;
+		contrastWarning?.classList.toggle('hidden', contrastAgainstWhite(color) >= 4.5);
+		colorPresets.forEach((btn) => {
+			const isActive = btn.dataset.color?.toLowerCase() === color.toLowerCase();
+			btn.classList.toggle('ring-2', isActive);
+			btn.classList.toggle('ring-white', isActive);
+		});
+	}
+
+	async function renderSheet() {
+		const color = colorInput.value;
+		const sizeCm = parseSizeCm();
+		// ~118 px/cm (≈300dpi) so the code stays crisp at whatever size gets printed.
+		const pxWidth = Math.min(1600, Math.max(160, Math.round(sizeCm * 118)));
+
+		sheetGrid.style.gridTemplateColumns = `repeat(auto-fill, ${sizeCm}cm)`;
+		sheetGrid.innerHTML = '';
+
+		const origin = window.location.origin;
+		for (const item of currentCodes) {
+			const url = `${origin}/${item.code}`;
+			const dataUrl = await QRCode.toDataURL(url, {
+				margin: 1,
+				width: pxWidth,
+				color: { dark: color, light: '#ffffffff' },
+			});
+
+			const cell = document.createElement('div');
+			cell.className = 'flex flex-col items-center gap-2 break-inside-avoid';
+			cell.innerHTML = `
+				<img src="${dataUrl}" alt="QR ${item.code}" style="width:${sizeCm}cm;height:${sizeCm}cm" />
+				<span class="font-mono text-xs text-neutral-900">${item.code}</span>
+			`;
+			sheetGrid.appendChild(cell);
+		}
+	}
 
 	batchForm.addEventListener('submit', async (e) => {
 		e.preventDefault();
@@ -109,23 +248,10 @@ import Layout from '../../layouts/Layout.astro';
 				return;
 			}
 
-			const origin = window.location.origin;
-			sheetGrid!.innerHTML = '';
+			currentCodes = data.codes as { code: string }[];
+			await renderSheet();
 
-			for (const item of data.codes as { code: string }[]) {
-				const url = `${origin}/${item.code}`;
-				const dataUrl = await QRCode.toDataURL(url, { margin: 1, width: 240 });
-
-				const cell = document.createElement('div');
-				cell.className = 'flex flex-col items-center gap-2 break-inside-avoid';
-				cell.innerHTML = `
-					<img src="${dataUrl}" alt="QR ${item.code}" class="h-auto w-full max-w-[160px]" />
-					<span class="font-mono text-xs text-neutral-900">${item.code}</span>
-				`;
-				sheetGrid!.appendChild(cell);
-			}
-
-			if (sheetCount) sheetCount.textContent = String(data.codes.length);
+			if (sheetCount) sheetCount.textContent = String(currentCodes.length);
 			formStep?.classList.add('hidden');
 			sheetStep?.classList.remove('hidden');
 		} catch {
@@ -136,6 +262,29 @@ import Layout from '../../layouts/Layout.astro';
 			submitBtn.disabled = false;
 		}
 	});
+
+	colorInput.addEventListener('input', () => {
+		updateColorUi();
+		renderSheet();
+	});
+
+	colorPresets.forEach((btn) => {
+		btn.addEventListener('click', () => {
+			const color = btn.dataset.color;
+			if (!color) return;
+			colorInput.value = color;
+			updateColorUi();
+			renderSheet();
+		});
+	});
+
+	// `change` (not `input`) so typing each digit of the size doesn't trigger a
+	// re-render per keystroke — only once the value is committed.
+	sizeInput.addEventListener('change', () => {
+		renderSheet();
+	});
+
+	updateColorUi();
 
 	printBtn?.addEventListener('click', () => {
 		window.print();
