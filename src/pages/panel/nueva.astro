@@ -94,8 +94,20 @@ import Layout from '../../layouts/Layout.astro';
 							</div>
 						</div>
 						<p id="contrast-warning" class="mt-1.5 hidden max-w-[220px] text-xs text-amber-400">
-							Este color tiene poco contraste sobre blanco y puede no escanear bien.
+							Estos colores tienen poco contraste entre sí y el QR puede no escanear bien.
 						</p>
+					</div>
+
+					<div>
+						<label for="qr-bg" class="mb-1 block text-xs font-medium text-neutral-400">
+							FONDO DEL QR
+						</label>
+						<input
+							id="qr-bg"
+							type="color"
+							value="#ffffff"
+							class="h-9 w-9 cursor-pointer rounded border border-neutral-700 bg-neutral-900 p-0.5"
+						/>
 					</div>
 
 					<div>
@@ -112,8 +124,27 @@ import Layout from '../../layouts/Layout.astro';
 							class="w-24 rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-white outline-none focus:border-brand"
 						/>
 						<p class="mt-1.5 max-w-[220px] text-xs text-neutral-500">
-							Incluye el margen blanco alrededor del código (zona de silencio), necesario para
-							que escanee bien.
+							Incluye el margen alrededor del código (zona de silencio), del color de fondo
+							elegido — necesario para que escanee bien.
+						</p>
+					</div>
+
+					<div>
+						<label for="qr-margin" class="mb-1 block text-xs font-medium text-neutral-400">
+							ZONA DE SILENCIO (MÓDULOS)
+						</label>
+						<input
+							id="qr-margin"
+							type="number"
+							min="0"
+							max="10"
+							step="1"
+							value="1"
+							class="w-24 rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+						/>
+						<p class="mt-1.5 max-w-[220px] text-xs text-neutral-500">
+							Margen en blanco (o del color de fondo) alrededor del código. Muy bajo puede hacer
+							que algunos lectores no lo reconozcan.
 						</p>
 					</div>
 				</div>
@@ -158,18 +189,27 @@ import Layout from '../../layouts/Layout.astro';
 	const printBtn = document.getElementById('print-btn');
 	const colorInput = document.getElementById('qr-color') as HTMLInputElement;
 	const colorPresets = document.querySelectorAll<HTMLButtonElement>('.preset-color');
+	const bgInput = document.getElementById('qr-bg') as HTMLInputElement;
 	const contrastWarning = document.getElementById('contrast-warning');
 	const sizeInput = document.getElementById('qr-size') as HTMLInputElement;
+	const marginInput = document.getElementById('qr-margin') as HTMLInputElement;
 
-	// Codes already exist in the database once the batch is created; color and
-	// size are purely rendering choices, so changing them just repaints the same
-	// codes instead of hitting the API again (which would burn a new batch).
+	// Codes already exist in the database once the batch is created; color, fondo,
+	// tamaño y margen son puramente opciones de renderizado, así que cambiarlos
+	// solo repinta los mismos códigos en vez de pegarle a la API (que gastaría un
+	// batch nuevo).
 	let currentCodes: { code: string }[] = [];
 
 	function parseSizeCm(): number {
 		const value = Number(sizeInput.value);
 		if (!Number.isFinite(value)) return 3;
 		return Math.min(15, Math.max(2, value));
+	}
+
+	function parseMargin(): number {
+		const value = Number(marginInput.value);
+		if (!Number.isFinite(value)) return 1;
+		return Math.min(10, Math.max(0, Math.round(value)));
 	}
 
 	/** WCAG relative luminance of a `#rrggbb` color, 0 (black) to 1 (white). */
@@ -182,14 +222,18 @@ import Layout from '../../layouts/Layout.astro';
 		return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
 	}
 
-	/** Contrast ratio of a color against a white background (1 to 21). */
-	function contrastAgainstWhite(hex: string): number {
-		return 1.05 / (relativeLuminance(hex) + 0.05);
+	/** Contrast ratio between two `#rrggbb` colors (1 to 21). */
+	function contrastRatio(hexA: string, hexB: string): number {
+		const [lighter, darker] = [relativeLuminance(hexA), relativeLuminance(hexB)].sort(
+			(a, b) => b - a
+		);
+		return (lighter + 0.05) / (darker + 0.05);
 	}
 
 	function updateColorUi() {
 		const color = colorInput.value;
-		contrastWarning?.classList.toggle('hidden', contrastAgainstWhite(color) >= 4.5);
+		const bg = bgInput.value;
+		contrastWarning?.classList.toggle('hidden', contrastRatio(color, bg) >= 4.5);
 		colorPresets.forEach((btn) => {
 			const isActive = btn.dataset.color?.toLowerCase() === color.toLowerCase();
 			btn.classList.toggle('ring-2', isActive);
@@ -199,7 +243,9 @@ import Layout from '../../layouts/Layout.astro';
 
 	async function renderSheet() {
 		const color = colorInput.value;
+		const bg = bgInput.value;
 		const sizeCm = parseSizeCm();
+		const margin = parseMargin();
 		// ~118 px/cm (≈300dpi) so the code stays crisp at whatever size gets printed.
 		const pxWidth = Math.min(1600, Math.max(160, Math.round(sizeCm * 118)));
 
@@ -210,9 +256,9 @@ import Layout from '../../layouts/Layout.astro';
 		for (const item of currentCodes) {
 			const url = `${origin}/${item.code}`;
 			const dataUrl = await QRCode.toDataURL(url, {
-				margin: 1,
+				margin,
 				width: pxWidth,
-				color: { dark: color, light: '#ffffffff' },
+				color: { dark: color, light: bg },
 			});
 
 			const cell = document.createElement('div');
@@ -278,9 +324,18 @@ import Layout from '../../layouts/Layout.astro';
 		});
 	});
 
-	// `change` (not `input`) so typing each digit of the size doesn't trigger a
-	// re-render per keystroke — only once the value is committed.
+	bgInput.addEventListener('input', () => {
+		updateColorUi();
+		renderSheet();
+	});
+
+	// `change` (not `input`) so typing each digit doesn't trigger a re-render per
+	// keystroke — only once the value is committed.
 	sizeInput.addEventListener('change', () => {
+		renderSheet();
+	});
+
+	marginInput.addEventListener('change', () => {
 		renderSheet();
 	});
 
