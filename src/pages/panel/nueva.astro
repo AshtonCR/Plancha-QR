@@ -2,167 +2,294 @@
 export const prerender = false;
 
 import Layout from '../../layouts/Layout.astro';
+import { DESIGNS } from '../../lib/designs';
 ---
 
 <Layout title="Generar plancha — Plancha QR">
 	<main class="min-h-screen px-6 py-10 print:p-0">
 		<div class="mx-auto max-w-3xl">
-			<!-- Step 1: choose quantity -->
-			<div id="form-step">
-				<a href="/panel" class="text-xs text-neutral-500 hover:text-neutral-300">&larr; Volver al panel</a>
-				<p class="mt-4 text-xs font-medium tracking-wide text-brand">NUEVA PLANCHA</p>
-				<h1 class="mt-1 text-2xl font-bold text-white">¿Cuántos códigos querés generar?</h1>
-				<p class="mt-2 text-sm text-neutral-400">
-					Se crean sin destino asignado. Los asignás después, escaneando cada uno.
-				</p>
+			<a href="/panel" class="text-xs text-neutral-500 hover:text-neutral-300 print:hidden">&larr; Volver al panel</a>
+			<p class="mt-4 text-xs font-medium tracking-wide text-brand">NUEVA PLANCHA</p>
 
-				<form id="batch-form" class="mt-6 flex max-w-xs gap-3">
-					<input
-						id="count"
-						name="count"
-						type="number"
-						min="1"
-						max="200"
-						value="10"
-						required
-						class="w-24 rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-2.5 text-sm text-white outline-none focus:border-brand"
-					/>
-					<button
-						type="submit"
-						class="rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-deep"
-					>
-						Generar
-					</button>
-				</form>
-				<p id="batch-error" class="mt-3 hidden text-xs text-red-400"></p>
+			<!-- Tabs -->
+			<div id="mode-tabs" class="mt-4 flex gap-2 print:hidden">
+				<button
+					type="button"
+					id="tab-normal"
+					class="mode-tab rounded-lg border px-4 py-2 text-sm font-semibold"
+					aria-selected="true"
+				>
+					Plancha normal
+				</button>
+				<button
+					type="button"
+					id="tab-design"
+					class="mode-tab rounded-lg border px-4 py-2 text-sm font-semibold"
+					aria-selected="false"
+				>
+					Con diseño
+				</button>
 			</div>
 
-			<!-- Step 2: printable A4 sheet -->
-			<div id="sheet-step" class="hidden">
-				<div class="flex items-center justify-between print:hidden">
-					<p class="text-sm text-neutral-400">
-						<span id="sheet-count"></span> códigos generados. Listos para imprimir.
+			<!-- ======================= Plancha normal ======================= -->
+			<div id="panel-normal">
+				<!-- Step 1: choose quantity -->
+				<div id="form-step">
+					<h1 class="mt-4 text-2xl font-bold text-white">¿Cuántos códigos querés generar?</h1>
+					<p class="mt-2 text-sm text-neutral-400">
+						Se crean sin destino asignado. Los asignás después, escaneando cada uno.
 					</p>
-					<button
-						id="print-btn"
-						type="button"
-						class="rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-deep"
-					>
-						Imprimir / Descargar PDF
-					</button>
+
+					<form id="batch-form" class="mt-6 flex max-w-xs gap-3">
+						<input
+							id="count"
+							name="count"
+							type="number"
+							min="1"
+							max="200"
+							value="10"
+							required
+							class="w-24 rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-2.5 text-sm text-white outline-none focus:border-brand"
+						/>
+						<button
+							type="submit"
+							class="rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-deep"
+						>
+							Generar
+						</button>
+					</form>
+					<p id="batch-error" class="mt-3 hidden text-xs text-red-400"></p>
 				</div>
 
-				<div class="mt-4 flex flex-wrap items-start gap-6 rounded-lg border border-neutral-800 bg-neutral-900/50 p-3 print:hidden">
-					<div>
-						<label class="mb-1 block text-xs font-medium text-neutral-400">COLOR DEL QR</label>
-						<div class="flex items-center gap-2">
+				<!-- Step 2: printable A4 sheet -->
+				<div id="sheet-step" class="hidden">
+					<div class="flex items-center justify-between print:hidden">
+						<p class="text-sm text-neutral-400">
+							<span id="sheet-count"></span> códigos generados. Listos para imprimir.
+						</p>
+						<button
+							id="print-btn"
+							type="button"
+							class="rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-deep"
+						>
+							Imprimir / Descargar PDF
+						</button>
+					</div>
+
+					<div class="mt-4 flex flex-wrap items-start gap-6 rounded-lg border border-neutral-800 bg-neutral-900/50 p-3 print:hidden">
+						<div>
+							<label class="mb-1 block text-xs font-medium text-neutral-400">COLOR DEL QR</label>
+							<div class="flex items-center gap-2">
+								<input
+									id="qr-color"
+									type="color"
+									value="#000000"
+									class="h-9 w-9 cursor-pointer rounded border border-neutral-700 bg-neutral-900 p-0.5"
+								/>
+								<div id="qr-color-presets" class="flex gap-1.5">
+									<button
+										type="button"
+										class="preset-color h-6 w-6 rounded-full border border-neutral-700"
+										data-color="#000000"
+										style="background:#000000"
+										aria-label="Negro"
+									></button>
+									<button
+										type="button"
+										class="preset-color h-6 w-6 rounded-full border border-neutral-700"
+										data-color="#202124"
+										style="background:#202124"
+										aria-label="Gris oscuro"
+									></button>
+									<button
+										type="button"
+										class="preset-color h-6 w-6 rounded-full border border-neutral-700"
+										data-color="#174EA6"
+										style="background:#174EA6"
+										aria-label="Azul"
+									></button>
+									<button
+										type="button"
+										class="preset-color h-6 w-6 rounded-full border border-neutral-700"
+										data-color="#0D652D"
+										style="background:#0D652D"
+										aria-label="Verde"
+									></button>
+								</div>
+							</div>
+							<p id="contrast-warning" class="mt-1.5 hidden max-w-[220px] text-xs text-amber-400">
+								Estos colores tienen poco contraste entre sí y el QR puede no escanear bien.
+							</p>
+						</div>
+
+						<div>
+							<label for="qr-bg" class="mb-1 block text-xs font-medium text-neutral-400">
+								FONDO DEL QR
+							</label>
 							<input
-								id="qr-color"
+								id="qr-bg"
 								type="color"
-								value="#000000"
+								value="#ffffff"
 								class="h-9 w-9 cursor-pointer rounded border border-neutral-700 bg-neutral-900 p-0.5"
 							/>
-							<div id="qr-color-presets" class="flex gap-1.5">
-								<button
-									type="button"
-									class="preset-color h-6 w-6 rounded-full border border-neutral-700"
-									data-color="#000000"
-									style="background:#000000"
-									aria-label="Negro"
-								></button>
-								<button
-									type="button"
-									class="preset-color h-6 w-6 rounded-full border border-neutral-700"
-									data-color="#202124"
-									style="background:#202124"
-									aria-label="Gris oscuro"
-								></button>
-								<button
-									type="button"
-									class="preset-color h-6 w-6 rounded-full border border-neutral-700"
-									data-color="#174EA6"
-									style="background:#174EA6"
-									aria-label="Azul"
-								></button>
-								<button
-									type="button"
-									class="preset-color h-6 w-6 rounded-full border border-neutral-700"
-									data-color="#0D652D"
-									style="background:#0D652D"
-									aria-label="Verde"
-								></button>
-							</div>
 						</div>
-						<p id="contrast-warning" class="mt-1.5 hidden max-w-[220px] text-xs text-amber-400">
-							Estos colores tienen poco contraste entre sí y el QR puede no escanear bien.
-						</p>
+
+						<div>
+							<label for="qr-size" class="mb-1 block text-xs font-medium text-neutral-400">
+								TAMAÑO (CM)
+							</label>
+							<input
+								id="qr-size"
+								type="number"
+								min="2"
+								max="15"
+								step="0.1"
+								value="3"
+								class="w-24 rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+							/>
+							<p class="mt-1.5 max-w-[220px] text-xs text-neutral-500">
+								Incluye el margen alrededor del código (zona de silencio), del color de fondo
+								elegido — necesario para que escanee bien.
+							</p>
+						</div>
+
+						<div>
+							<label for="qr-margin" class="mb-1 block text-xs font-medium text-neutral-400">
+								ZONA DE SILENCIO (MÓDULOS)
+							</label>
+							<input
+								id="qr-margin"
+								type="number"
+								min="0"
+								max="10"
+								step="1"
+								value="1"
+								class="w-24 rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+							/>
+							<p class="mt-1.5 max-w-[220px] text-xs text-neutral-500">
+								Margen en blanco (o del color de fondo) alrededor del código. Muy bajo puede hacer
+								que algunos lectores no lo reconozcan.
+							</p>
+						</div>
 					</div>
 
-					<div>
-						<label for="qr-bg" class="mb-1 block text-xs font-medium text-neutral-400">
-							FONDO DEL QR
-						</label>
-						<input
-							id="qr-bg"
-							type="color"
-							value="#ffffff"
-							class="h-9 w-9 cursor-pointer rounded border border-neutral-700 bg-neutral-900 p-0.5"
-						/>
+					<div
+						id="sheet-grid"
+						class="mt-4 grid gap-6 rounded-xl border border-neutral-800 bg-white p-8 print:mt-0 print:gap-4 print:rounded-none print:border-0 print:p-4"
+					>
 					</div>
 
-					<div>
-						<label for="qr-size" class="mb-1 block text-xs font-medium text-neutral-400">
-							TAMAÑO (CM)
-						</label>
-						<input
-							id="qr-size"
-							type="number"
-							min="2"
-							max="15"
-							step="0.1"
-							value="3"
-							class="w-24 rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-white outline-none focus:border-brand"
-						/>
-						<p class="mt-1.5 max-w-[220px] text-xs text-neutral-500">
-							Incluye el margen alrededor del código (zona de silencio), del color de fondo
-							elegido — necesario para que escanee bien.
-						</p>
-					</div>
-
-					<div>
-						<label for="qr-margin" class="mb-1 block text-xs font-medium text-neutral-400">
-							ZONA DE SILENCIO (MÓDULOS)
-						</label>
-						<input
-							id="qr-margin"
-							type="number"
-							min="0"
-							max="10"
-							step="1"
-							value="1"
-							class="w-24 rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-white outline-none focus:border-brand"
-						/>
-						<p class="mt-1.5 max-w-[220px] text-xs text-neutral-500">
-							Margen en blanco (o del color de fondo) alrededor del código. Muy bajo puede hacer
-							que algunos lectores no lo reconozcan.
-						</p>
-					</div>
+					<p class="mt-3 text-xs text-neutral-500 print:hidden">
+						Al imprimir, usá escala 100% (no "Ajustar a página") para que el tamaño en cm salga
+						exacto.
+					</p>
 				</div>
+			</div>
 
-				<div
-					id="sheet-grid"
-					class="mt-4 grid gap-6 rounded-xl border border-neutral-800 bg-white p-8 print:mt-0 print:gap-4 print:rounded-none print:border-0 print:p-4"
-				>
-				</div>
-
-				<p class="mt-3 text-xs text-neutral-500 print:hidden">
-					Al imprimir, usá escala 100% (no "Ajustar a página") para que el tamaño en cm salga
-					exacto.
+			<!-- ======================= Con diseño ======================= -->
+			<div id="panel-design" class="hidden">
+				<h1 class="mt-4 text-2xl font-bold text-white">Elegí un diseño</h1>
+				<p class="mt-2 text-sm text-neutral-400">
+					Cada diseño genera 1 hoja con 3 códigos listos para imprimir.
 				</p>
 
-				<a href="/panel" class="mt-6 inline-block text-xs text-neutral-500 hover:text-neutral-300 print:hidden">
-					&larr; Volver al panel
-				</a>
+				<div id="design-grid" class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5">
+					{DESIGNS.map((design) => (
+						<button
+							type="button"
+							class="design-card rounded-lg border border-neutral-800 bg-neutral-900/50 p-2 text-left hover:border-neutral-600"
+							data-design-id={design.id}
+						>
+							<img
+								src={`/designs-preview/${design.id}.png`}
+								alt={design.label}
+								class="w-full rounded border border-neutral-800"
+							/>
+							<p class="mt-2 text-xs text-neutral-300">{design.label}</p>
+						</button>
+					))}
+				</div>
+
+				<div id="design-options" class="mt-6 hidden">
+					<div class="flex flex-wrap items-start gap-6 rounded-lg border border-neutral-800 bg-neutral-900/50 p-3">
+						<div>
+							<label class="mb-1 block text-xs font-medium text-neutral-400">COLOR DEL QR</label>
+							<div class="flex items-center gap-2">
+								<input
+									id="design-qr-color"
+									type="color"
+									value="#000000"
+									class="h-9 w-9 cursor-pointer rounded border border-neutral-700 bg-neutral-900 p-0.5"
+								/>
+								<div id="design-qr-color-presets" class="flex gap-1.5">
+									<button
+										type="button"
+										class="design-preset-color h-6 w-6 rounded-full border border-neutral-700"
+										data-color="#000000"
+										style="background:#000000"
+										aria-label="Negro"
+									></button>
+									<button
+										type="button"
+										class="design-preset-color h-6 w-6 rounded-full border border-neutral-700"
+										data-color="#202124"
+										style="background:#202124"
+										aria-label="Gris oscuro"
+									></button>
+									<button
+										type="button"
+										class="design-preset-color h-6 w-6 rounded-full border border-neutral-700"
+										data-color="#174EA6"
+										style="background:#174EA6"
+										aria-label="Azul"
+									></button>
+									<button
+										type="button"
+										class="design-preset-color h-6 w-6 rounded-full border border-neutral-700"
+										data-color="#0D652D"
+										style="background:#0D652D"
+										aria-label="Verde"
+									></button>
+								</div>
+							</div>
+							<p id="design-contrast-warning" class="mt-1.5 hidden max-w-[220px] text-xs text-amber-400">
+								Estos colores tienen poco contraste entre sí y el QR puede no escanear bien.
+							</p>
+						</div>
+
+						<div>
+							<label for="design-qr-bg" class="mb-1 block text-xs font-medium text-neutral-400">
+								FONDO DEL QR
+							</label>
+							<input
+								id="design-qr-bg"
+								type="color"
+								value="#ffffff"
+								class="h-9 w-9 cursor-pointer rounded border border-neutral-700 bg-neutral-900 p-0.5"
+							/>
+						</div>
+					</div>
+
+					<div class="mt-4 max-w-xs">
+						<div id="design-preview-wrap" class="relative w-full overflow-hidden rounded-lg border border-neutral-800">
+							<img id="design-preview-img" src="" alt="" class="block w-full" />
+							<img id="design-preview-qr" src="" alt="Vista previa del QR" class="absolute" style="top:19.3%;left:30.8%;width:9.6%;" />
+						</div>
+						<p class="mt-2 text-xs text-neutral-500">
+							Vista previa aproximada. El PDF final ubica el QR con precisión dentro de la
+							tarjeta.
+						</p>
+					</div>
+
+					<button
+						id="design-download-btn"
+						type="button"
+						class="mt-4 rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-deep"
+					>
+						Generar y descargar PDF
+					</button>
+					<p id="design-error" class="mt-3 hidden text-xs text-red-400"></p>
+				</div>
 			</div>
 		</div>
 	</main>
@@ -174,10 +301,43 @@ import Layout from '../../layouts/Layout.astro';
 			background: white !important;
 		}
 	}
+
+	.mode-tab {
+		color: #a3a3a3;
+		border-color: #262626;
+		background: color-mix(in srgb, #171717 50%, transparent);
+	}
+
+	.mode-tab[aria-selected='true'] {
+		color: white;
+		border-color: var(--color-brand);
+		background: color-mix(in srgb, var(--color-brand) 15%, transparent);
+	}
 </style>
 
 <script>
 	import QRCode from 'qrcode';
+	import { contrastRatio } from '../../lib/color-contrast';
+
+	// ======================= Tabs =======================
+
+	const tabNormal = document.getElementById('tab-normal') as HTMLButtonElement;
+	const tabDesign = document.getElementById('tab-design') as HTMLButtonElement;
+	const panelNormal = document.getElementById('panel-normal');
+	const panelDesign = document.getElementById('panel-design');
+
+	function selectTab(mode: 'normal' | 'design') {
+		const isNormal = mode === 'normal';
+		tabNormal.setAttribute('aria-selected', String(isNormal));
+		tabDesign.setAttribute('aria-selected', String(!isNormal));
+		panelNormal?.classList.toggle('hidden', !isNormal);
+		panelDesign?.classList.toggle('hidden', isNormal);
+	}
+
+	tabNormal.addEventListener('click', () => selectTab('normal'));
+	tabDesign.addEventListener('click', () => selectTab('design'));
+
+	// ======================= Plancha normal (unchanged) =======================
 
 	const formStep = document.getElementById('form-step');
 	const sheetStep = document.getElementById('sheet-step');
@@ -210,24 +370,6 @@ import Layout from '../../layouts/Layout.astro';
 		const value = Number(marginInput.value);
 		if (!Number.isFinite(value)) return 1;
 		return Math.min(10, Math.max(0, Math.round(value)));
-	}
-
-	/** WCAG relative luminance of a `#rrggbb` color, 0 (black) to 1 (white). */
-	function relativeLuminance(hex: string): number {
-		const n = parseInt(hex.slice(1), 16);
-		const channels = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((c) => {
-			const s = c / 255;
-			return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
-		});
-		return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
-	}
-
-	/** Contrast ratio between two `#rrggbb` colors (1 to 21). */
-	function contrastRatio(hexA: string, hexB: string): number {
-		const [lighter, darker] = [relativeLuminance(hexA), relativeLuminance(hexB)].sort(
-			(a, b) => b - a
-		);
-		return (lighter + 0.05) / (darker + 0.05);
 	}
 
 	function updateColorUi() {
@@ -343,5 +485,141 @@ import Layout from '../../layouts/Layout.astro';
 
 	printBtn?.addEventListener('click', () => {
 		window.print();
+	});
+
+	// ======================= Con diseño =======================
+
+	const designCards = document.querySelectorAll<HTMLButtonElement>('.design-card');
+	const designOptions = document.getElementById('design-options');
+	const designPreviewImg = document.getElementById('design-preview-img') as HTMLImageElement;
+	const designPreviewQr = document.getElementById('design-preview-qr') as HTMLImageElement;
+	const designColorInput = document.getElementById('design-qr-color') as HTMLInputElement;
+	const designPresets = document.querySelectorAll<HTMLButtonElement>('.design-preset-color');
+	const designBgInput = document.getElementById('design-qr-bg') as HTMLInputElement;
+	const designContrastWarning = document.getElementById('design-contrast-warning');
+	const designDownloadBtn = document.getElementById('design-download-btn') as HTMLButtonElement;
+	const designError = document.getElementById('design-error');
+
+	let selectedDesignId: string | null = null;
+
+	function updateDesignColorUi() {
+		const color = designColorInput.value;
+		const bg = designBgInput.value;
+		designContrastWarning?.classList.toggle('hidden', contrastRatio(color, bg) >= 4.5);
+		designPresets.forEach((btn) => {
+			const isActive = btn.dataset.color?.toLowerCase() === color.toLowerCase();
+			btn.classList.toggle('ring-2', isActive);
+			btn.classList.toggle('ring-white', isActive);
+		});
+	}
+
+	async function renderDesignPreview() {
+		if (!selectedDesignId) return;
+		const sampleUrl = `${window.location.origin}/PREVIEW`;
+		const dataUrl = await QRCode.toDataURL(sampleUrl, {
+			margin: 1,
+			width: 200,
+			color: { dark: designColorInput.value, light: designBgInput.value },
+		});
+		designPreviewQr.src = dataUrl;
+	}
+
+	designCards.forEach((card) => {
+		card.addEventListener('click', () => {
+			const id = card.dataset.designId;
+			if (!id) return;
+			selectedDesignId = id;
+
+			designCards.forEach((c) => {
+				const isActive = c === card;
+				c.classList.toggle('ring-2', isActive);
+				c.classList.toggle('ring-brand', isActive);
+			});
+
+			designPreviewImg.src = `/designs-preview/${id}.png`;
+			designPreviewImg.alt = card.querySelector('img')?.alt ?? '';
+			designOptions?.classList.remove('hidden');
+			designError?.classList.add('hidden');
+			renderDesignPreview();
+		});
+	});
+
+	designColorInput.addEventListener('input', () => {
+		updateDesignColorUi();
+		renderDesignPreview();
+	});
+
+	designPresets.forEach((btn) => {
+		btn.addEventListener('click', () => {
+			const color = btn.dataset.color;
+			if (!color) return;
+			designColorInput.value = color;
+			updateDesignColorUi();
+			renderDesignPreview();
+		});
+	});
+
+	designBgInput.addEventListener('input', () => {
+		updateDesignColorUi();
+		renderDesignPreview();
+	});
+
+	updateDesignColorUi();
+
+	designDownloadBtn.addEventListener('click', async () => {
+		if (!selectedDesignId) return;
+		designError?.classList.add('hidden');
+		designDownloadBtn.disabled = true;
+
+		try {
+			const res = await fetch('/api/qrs/design-batch', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					designId: selectedDesignId,
+					qrColor: designColorInput.value,
+					qrBg: designBgInput.value,
+				}),
+			});
+
+			if (!res.ok) {
+				let errorCode = 'template_error';
+				try {
+					const data = await res.json();
+					errorCode = data.error ?? errorCode;
+				} catch {
+					// respuesta sin JSON, mantenemos el error genérico
+				}
+				const messages: Record<string, string> = {
+					invalid_design: 'Diseño inválido, elegí uno de la grilla.',
+					invalid_color: 'Colores inválidos, probá de nuevo.',
+					invalid_body: 'No se pudo generar el PDF, probá de nuevo.',
+					template_error: 'No se pudo generar el PDF, probá de nuevo.',
+				};
+				if (designError) {
+					designError.textContent = messages[errorCode] ?? messages.template_error;
+					designError.classList.remove('hidden');
+				}
+				designDownloadBtn.disabled = false;
+				return;
+			}
+
+			const blob = await res.blob();
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = 'plancha.pdf';
+			document.body.appendChild(a);
+			a.click();
+			a.remove();
+			URL.revokeObjectURL(url);
+			designDownloadBtn.disabled = false;
+		} catch {
+			if (designError) {
+				designError.textContent = 'No se pudo generar el PDF. Revisá tu conexión.';
+				designError.classList.remove('hidden');
+			}
+			designDownloadBtn.disabled = false;
+		}
 	});
 </script>
