@@ -129,7 +129,13 @@ export const POST: APIRoute = async ({ request }) => {
 	}
 	const font = await doc.embedFont(StandardFonts.Courier);
 
-	const created = await createBatchCodes(LAYOUT_CARTA_3.length);
+	let created: Awaited<ReturnType<typeof createBatchCodes>>;
+	try {
+		created = await createBatchCodes(LAYOUT_CARTA_3.length);
+	} catch (err) {
+		console.error('design-batch: createBatchCodes error', err);
+		return json({ ok: false, error: 'codes_error' }, 500);
+	}
 	const origin = new URL(request.url).origin;
 
 	for (const [i, { code }] of created.entries()) {
