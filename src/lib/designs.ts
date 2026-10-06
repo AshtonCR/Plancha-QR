@@ -28,18 +28,22 @@ export const LETTER_SIZE = { width: 612, height: 792 } as const;
  * Measured on 72dpi renders of the raw templates (1px = 1 raw unit), where the
  * open interior of the inner "QR HERE" square is x 801.5–1011.5 and, from the
  * top, y 663.5–874.5 / 1520.5–1731.5 / 2377.5–2588.5 (cards repeat every 857
- * units). Each QR is a 212-unit square centered on that interior, overlapping
- * the inner frame stroke by ~1 unit so no anti-aliased seam shows. Converted
- * with the uniform factor 612/2550 = 792/3300 = 0.24 and the Y flip
- * `y_pdf = 3300 - y_top - size`. Identical in all 10 templates.
+ * units). Converted with the uniform factor 612/2550 = 792/3300 = 0.24 and
+ * the Y flip `y_pdf = 3300 - y_top - size`. Identical in all 10 templates.
+ *
+ * Each QR is drawn at 1.9cm (53.86pt, requested bigger than the bare inner
+ * square so it reads more clearly when printed), centered on the same point
+ * as the originally-measured 212-unit/50.88pt inner square — `x`/`y` here are
+ * shifted by `(oldSize - size) / 2` from that measurement to keep the center
+ * fixed as the size grew.
  *
  * The cards are rotated 90° on the sheet (their "up" points to the page's
  * right edge), so the endpoint rotates each QR to match.
  */
 export const LAYOUT_CARTA_3: CardSlot[] = [
-	{ qr: { x: 192.12, y: 582.0, size: 50.88 } },
-	{ qr: { x: 192.12, y: 376.32, size: 50.88 } },
-	{ qr: { x: 192.12, y: 170.64, size: 50.88 } },
+	{ qr: { x: 190.63, y: 580.51, size: 53.86 } },
+	{ qr: { x: 190.63, y: 374.83, size: 53.86 } },
+	{ qr: { x: 190.63, y: 169.15, size: 53.86 } },
 ];
 
 /**
