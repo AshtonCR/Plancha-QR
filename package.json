@@ -17,6 +17,7 @@
     "@tailwindcss/vite": "^4.3.3",
     "astro": "^7.3.3",
     "nanoid": "^5.1.16",
+    "pdf-lib": "^1.17.1",
     "qrcode": "^1.5.4",
     "tailwindcss": "^4.3.3"
   },

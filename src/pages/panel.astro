@@ -103,6 +103,7 @@ function formatDateTime(iso: string) {
                     <th class="px-4 py-3 font-medium">Negocio</th>
                     <th class="px-4 py-3 font-medium">Destino</th>
                     <th class="px-4 py-3 font-medium">Creado</th>
+                    <th class="px-4 py-3 font-medium"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -148,6 +149,15 @@ function formatDateTime(iso: string) {
                       <td class="px-4 py-3 text-neutral-500">
                         {formatDateTime(qr.created_at)}
                       </td>
+                      <td class="px-4 py-3">
+                        <button
+                          type="button"
+                          class="download-qr-btn text-xs text-neutral-400 hover:text-brand"
+                          data-code={qr.code}
+                        >
+                          Descargar QR
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -161,6 +171,27 @@ function formatDateTime(iso: string) {
 </Layout>
 
 <script>
+	import QRCode from 'qrcode';
+
+	document.querySelectorAll<HTMLButtonElement>('.download-qr-btn').forEach((btn) => {
+		btn.addEventListener('click', async () => {
+			const code = btn.dataset.code;
+			if (!code) return;
+
+			const dataUrl = await QRCode.toDataURL(`${window.location.origin}/${code}`, {
+				margin: 1,
+				width: 600,
+			});
+
+			const a = document.createElement('a');
+			a.href = dataUrl;
+			a.download = `${code}.png`;
+			document.body.appendChild(a);
+			a.click();
+			a.remove();
+		});
+	});
+
 	const selectAll = document.getElementById('select-all') as HTMLInputElement | null;
 	const bulkBar = document.getElementById('bulk-bar');
 	const selectedCount = document.getElementById('selected-count');
